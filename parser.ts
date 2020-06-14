@@ -1,7 +1,7 @@
 import { Token, TokenType, Declaration, Node, Expression, OPERATORS } from "./model.ts";
 
 
-export function parse(tokens: Token[]): Node[] {
+export function parse(tokens: Token[], errorCallback: (tokenOrLineNumber: Token|number, message: string) => any = () => {}): Node[] {
     let declarations: Node[] = [];
 
     let current = 0;
@@ -20,7 +20,7 @@ export function parse(tokens: Token[]): Node[] {
             current++;
             return token;
         } else {
-            throw Error("Failed");
+            throw new ParseError(tokens[current], `Unexpected token, expected ${expected}`);
         }
     }
 
@@ -37,6 +37,7 @@ export function parse(tokens: Token[]): Node[] {
                 return expression();
             }
         } catch (err) {
+            errorCallback(err.tokenOrLineNumber, err.message);
             synchronize();
             return null;
         }
@@ -98,11 +99,11 @@ export function parse(tokens: Token[]): Node[] {
     }
 
     function callInfix(): Expression {
-        let expr = callPrefix();
+        let expr = callPipe();
 
         if (tokens[current]?.type === 'identifier') {
             let name = eat('identifier');
-            let arg1 = callPrefix();
+            let arg1 = callInfix();
 
             return { 
                 kind: 'call', 
@@ -117,8 +118,21 @@ export function parse(tokens: Token[]): Node[] {
         return expr;
     }
 
+    function callPipe(): Expression {
+        let expr = callPrefix();
+
+        while (tokens[current]?.type === '|>') {
+            eat('|>');
+            let func = callPrefix();
+
+            expr = { kind: 'call', func, args: [ expr ] };
+        }
+
+        return expr;
+    }
+
     function callPrefix(): Expression {
-        let expr = callUnary();
+        let expr = primary();
 
         if (tokens[current]?.type === '(' && !tokens[current]?.whitespaceBefore) {
             eat('(');
@@ -138,19 +152,6 @@ export function parse(tokens: Token[]): Node[] {
         return expr;
     }
 
-    function callUnary(): Expression {
-        let expr = primary();
-
-        while (tokens[current]?.type === '|>') {
-            eat('|>');
-            let next = primary();
-
-            expr = { kind: 'call', func: next, args: [ expr ] };
-        }
-
-        return expr;
-    }
-
     function primary(): Expression {
         if (tokens[current]?.type === 'false') return { kind: 'literal', value: false };
         if (tokens[current]?.type === 'true') return { kind: 'literal', value: true };
@@ -163,7 +164,7 @@ export function parse(tokens: Token[]): Node[] {
             return { kind, name };
         }
 
-        throw Error('Expected expression');
+        throw new ParseError(tokens[current], `Expected expression`);
     }
 
 
@@ -196,4 +197,15 @@ export function parse(tokens: Token[]): Node[] {
 
     
     return declarations;
+}
+
+class ParseError {
+
+    tokenOrLineNumber: Token|number;
+    message: string;
+
+    constructor(tokenOrLineNumber: Token|number, message: string) {
+        this.tokenOrLineNumber = tokenOrLineNumber;
+        this.message = message;
+    }
 }
