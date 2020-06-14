@@ -15,7 +15,7 @@ let num = 12 |> add(2) |> mul(3)
 let things = [ 4, 2, 7, 1 ]
 
 let otherThings = things 
-    |> filter(x => x % 2 == 0) 
+    |> filter((x) => x % 2 == 0) 
     |> map(mul(2))
 
 let obj = {
@@ -40,9 +40,12 @@ let mergesort(x) =>
     merge(mergesort(x[:h]), mergesort(x[h:]))
 
 
-// TODO: Figure out nested let syntax
-// TODO: Figure out list indexing/slicing/comprehension
-
+// TODO: Nested let syntax
+// TODO: Array indexing/slicing/comprehension
+// TODO: String literals
+// TODO: Object access/operations
+// TODO: import/export
+// TODO: Math operator precedence
 
 // Grammar
 declaration = "let" + identifier + "=" + expression

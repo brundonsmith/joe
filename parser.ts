@@ -1,113 +1,199 @@
-import { Token, TokenType, Declaration } from "./model.ts";
+import { Token, TokenType, Declaration, Node, Expression, OPERATORS } from "./model.ts";
 
-export default class Parser {
-    private tokens: Token[];
-    private current: number = 0;
 
-    constructor(tokens: Token[]) {
-        this.tokens = tokens;
-    }
+export function parse(tokens: Token[]): Node[] {
+    let declarations: Node[] = [];
 
-    public parse(): Declaration[] {
-        let statements: Declaration[] = [];
-
-        while(!this.atEnd) {
-            let statement = this.declaration();
-            if(statement != null) {
-                statements.push(statement);
-            }
+    let current = 0;
+    while(current < tokens.length) {
+        const decl = declaration();
+        if (decl != null) {
+            declarations.push(decl);
         }
-
-        return statements;
     }
 
-    private declaration(): Declaration|null {
+
+    // functions
+    function eat(expected: TokenType): Token {
+        if (tokens[current]?.type === expected) {
+            const token = tokens[current];
+            current++;
+            return token;
+        } else {
+            throw Error("Failed");
+        }
+    }
+
+    function declaration(): Node|null {
         try {
-            if (this.match('let')) {
-                return this.
+            if (tokens[current].type === 'let') {
+                eat('let');
+                const name = eat('identifier');
+                eat('=');
+                const initializer = expression();
+
+                return { kind: 'declaration', name, initializer }
+            } else {
+                return expression();
             }
         } catch (err) {
-            this.synchronize();
+            synchronize();
             return null;
         }
     }
+    
+    function synchronize() {
+        current++;
 
-    private match(...tokenTypes: TokenType[]): boolean {
-        for (let tokenType of tokenTypes) {
-            if (this.check(tokenType)) {
-                this.advance();
-                return true;
+        while (current < tokens.length && tokens[current].type !== 'let') {
+            current++;
+        }
+    }
+
+    function expression(): Expression {
+        return conditional();
+    }
+
+    function conditional(): Expression {
+        let expr = func();
+
+        while (tokens[current]?.type === '->') {
+            eat('->');
+            let case1 = func();
+
+            if (tokens[current]?.type === '->') {
+                eat('->');
+                let case2 = func();
+                
+                expr = { kind: 'conditional', condition: expr, case1, case2 };
             }
         }
 
-        return false;
+        return expr;
     }
 
-    private consume(tokenType: TokenType, errorMessage: string): Token {
-        if(this.check(tokenType)) {
-            return this.advance();
-        } else {
-            throw this.error(this.peek, errorMessage);
-        }
-    }
+    function func(): Expression {
+        if (tokens[current]?.type === '(' && (tokens[current + 1]?.type === ')' || (tokens[current + 1]?.type === 'identifier' && (tokens[current + 2]?.type === ',' || tokens[current + 2]?.type === ')')))) {
+            eat('(');
 
-    private synchronize() {
-        this.advance();
+            let params = [];
+            if (tokens[current]?.type === 'identifier') {
+                params.push(eat('identifier'));
 
-        while (!this.atEnd) {
-            if (this.previous.type === 'semicolon') return;
-
-            switch (this.peek.type) {
-                case 'class':
-                case 'fun':
-                case 'var':
-                case 'for':
-                case 'if':
-                case 'while':
-                case 'print':
-                case 'return':
-                    return;
+                while(tokens[current]?.type === ',') {
+                    eat(',');
+                    params.push(eat('identifier'));
+                }
             }
 
-            this.advance();
-        }
-    }
+            eat(')');
+            eat('=>');
+            
+            const body = expression();
 
-    private advance(): Token {
-        if (!this.atEnd) {
-            this.current++;
-        }
-        
-        return this.previous;
-    }
-
-    private error(token: Token, message: string): SyntaxError {
-        // parsingError(token, message);
-        console.error(token, message);
-        return new SyntaxError();
-    }
-
-    private check(tokenType: TokenType): boolean {
-        if (this.atEnd) {
-            return false;
+            return { kind: 'function-literal', params, body };
         } else {
-            return this.peek.type === tokenType;
+            return callInfix();
         }
     }
 
-    get atEnd() {
-        return this.peek.type === 'eof';
+    function callInfix(): Expression {
+        let expr = callPrefix();
+
+        if (tokens[current]?.type === 'identifier') {
+            let name = eat('identifier');
+            let arg1 = callPrefix();
+
+            return { 
+                kind: 'call', 
+                func: {
+                    kind: (OPERATORS as readonly string[]).includes(name.lexeme) ? 'operator-identifier' : 'identifier', 
+                    name 
+                }, 
+                args: [ expr, arg1 ]
+            };
+        }
+
+        return expr;
     }
 
-    get peek(): Token {
-        return this.tokens[this.current];
+    function callPrefix(): Expression {
+        let expr = callUnary();
+
+        if (tokens[current]?.type === '(' && !tokens[current]?.whitespaceBefore) {
+            eat('(');
+
+            let args = [];
+            if (tokens[current]?.type !== ')') {
+                do {
+                    args.push(expression());
+                } while (tokens[current]?.type === ',')
+            }
+
+            eat(')');
+
+            return { kind: 'call', func: expr, args }
+        }
+
+        return expr;
     }
 
-    get peekNext(): Token {
-        return this.tokens[this.current + 1];
+    function callUnary(): Expression {
+        let expr = primary();
+
+        while (tokens[current]?.type === '|>') {
+            eat('|>');
+            let next = primary();
+
+            expr = { kind: 'call', func: next, args: [ expr ] };
+        }
+
+        return expr;
     }
 
-    get previous(): Token {
-        return this.tokens[this.current - 1];
+    function primary(): Expression {
+        if (tokens[current]?.type === 'false') return { kind: 'literal', value: false };
+        if (tokens[current]?.type === 'true') return { kind: 'literal', value: true };
+        if (tokens[current]?.type === 'undefined') return { kind: 'literal', value: undefined };
+        if (tokens[current]?.type === 'number' || tokens[current]?.type === 'string') return { kind: 'literal', value: eat(tokens[current]?.type).literal };
+        if (tokens[current]?.type === 'identifier') {
+            let name = eat('identifier');
+            let kind: 'operator-identifier' | 'identifier' = (OPERATORS as readonly string[]).includes(name.lexeme) ? 'operator-identifier' : 'identifier';
+
+            return { kind, name };
+        }
+
+        throw Error('Expected expression');
     }
+
+
+    // function array(): Expression {
+
+    // }
+
+    // function object(): Expression {
+
+    // }
+
+
+    // function callInfix(): Expression {
+
+    // }
+
+    // function callUnary(): Expression {
+
+    // }
+
+
+    // function conditional(): Expression {
+
+    // }
+
+
+    // function parenths(): Expression {
+
+    // }
+
+    
+    return declarations;
 }

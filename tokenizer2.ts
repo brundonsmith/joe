@@ -6,6 +6,7 @@ export default function tokenize(source: string): Token[] {
     let start = 0;
     let line = 0;
     let current = 0;
+    let whitespaceBefore = true;
 
     function peek() {
         return current >= source.length
@@ -40,6 +41,8 @@ export default function tokenize(source: string): Token[] {
     while (current < source.length) {
         start = current;
 
+        whitespaceBefore = isWhiteSpace(source[current]);
+
         if ([ ' ', '\r', '\t' ].some(eat)) {
             // skip
         } else if (eat('\n')) {
@@ -49,7 +52,8 @@ export default function tokenize(source: string): Token[] {
             tokens.push({
                 type: currentToken() as TokenType,
                 lexeme: currentToken(),
-                line
+                line,
+                whitespaceBefore
             });
         } else if (eat('//')) {
             while (peek() !== '\n' && current < source.length) current++;
@@ -59,7 +63,8 @@ export default function tokenize(source: string): Token[] {
             tokens.push({
                 type: currentToken() as TokenType,
                 lexeme: currentToken(),
-                line
+                line,
+                whitespaceBefore
             });
         } else if (eat('"')) {
             while (!eat('"') && current < source.length) {
@@ -75,6 +80,7 @@ export default function tokenize(source: string): Token[] {
                     type: 'string',
                     lexeme: currentToken(),
                     line,
+                    whitespaceBefore,
                     literal
                 });
             }
@@ -90,16 +96,24 @@ export default function tokenize(source: string): Token[] {
                 type: 'number',
                 lexeme: currentToken(),
                 line,
+                whitespaceBefore,
                 literal: Number(currentToken())
             });
         } else if(isValidIdentifier(peek())) {
             while (isValidIdentifier(peek()) && current < source.length) current++;
 
+            const token = currentToken();
+            const type = 
+                (KEYWORDS as readonly string[]).includes(token) 
+                    ? <TokenType> token 
+                    : 'identifier';
+
             tokens.push({
-                type: 'identifier',
-                lexeme: currentToken(),
+                type,
+                lexeme: token,
                 line,
-                literal: currentToken()
+                whitespaceBefore,
+                literal: token
             });
         } else {
             console.error(line, `Unexpected character '${peek()}'.`)

@@ -1,34 +1,64 @@
 
 
 // AST
+export type Node =
+    | Declaration
+    | Expression
+
+
+
 export type Declaration = {
     kind: 'declaration',
     name: Token,
     initializer: Expression,
 }
 
-export type Expression = 
-    | Literal
 
-export type Literal = {
+
+export type Expression = 
+    | Identifier
+    | OperatorIdentifier
+    | Literal
+    | Call
+    | Conditional
+
+export type Identifier = {
+    kind: 'identifier',
+    name: Token
+}
+
+export type OperatorIdentifier = {
+    kind: 'operator-identifier',
+    name: Token
+}
+
+export type Literal =
+    | PrimitiveLiteral
+    | FunctionLiteral
+
+export type PrimitiveLiteral = {
     kind: 'literal',
     value: LiteralValue,
 }
+
+export type FunctionLiteral = {
+    kind: 'function-literal',
+    params: Token[],
+    body: Expression
+}
+
 
 export type Call = {
     kind: 'call',
     func: Expression,
     args: Expression[],
-    paren: Token,
 }
 
 export type Conditional = {
     kind: 'conditional',
-    cases: Array<{
-        condition: Expression,
-        result: Expression,
-    }>,
-    defaultCase: Expression,
+    condition: Expression,
+    case1: Expression,
+    case2: Expression,
 }
 
 
@@ -39,7 +69,22 @@ export type Token = {
     lexeme: string,
     literal?: LiteralValue,
     line: number,
+    whitespaceBefore: boolean,
 }
+
+export const OPERATORS = [
+    '+',
+    '-',
+    '*',
+    '/',
+
+    '==',
+    '!=',
+    '>',
+    '<',
+    '>=',
+    '<=',
+] as const;
 
 export const KEYWORDS = [
     ',',
@@ -59,6 +104,10 @@ export const KEYWORDS = [
     'let',
     'true',
     'false',
+    'and',
+    'or',
+    'not',
+    'undefined'
 ] as const;
 
 export type TokenType = 
@@ -72,4 +121,4 @@ export type LiteralValue =
     | ((...args: LiteralValue[]) => LiteralValue)
     | [ LiteralValue ] 
     | { [key: string]: LiteralValue } 
-    | number|string|boolean|null;
+    | number|string|boolean|undefined;
