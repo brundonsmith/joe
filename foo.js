@@ -1,5 +1,10 @@
 import { ReturnValue } from "./model"
 
+let fib = (index) =>
+    index < 3 -> 1
+    -> fib(index - 1) + fib(index - 2)
+
+let sequence = tap(1..10 |> map(fib))
 
 let add = (a, b) => a + b
 
@@ -42,7 +47,7 @@ let mergesort(x) =>
 
 // TODO: Nested let syntax
 // TODO: Array indexing/slicing/comprehension
-// TODO: String literals
+// TODO: String template literals
 // TODO: Object access/operations
 // TODO: import/export
 // TODO: Math operator precedence

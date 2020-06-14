@@ -48,7 +48,7 @@ export default function tokenize(source: string): Token[] {
         } else if (eat('\n')) {
             line++;
             // skip
-        } else if ([ ',', '(', ')', '{', '}', '[', ']', '.', ':', '=>', '->', '|>' ].some(eat)) {
+        } else if ([ ',', '(', ')', '{', '}', '[', ']', '..', '.', ':', '=>', '->', '|>' ].some(eat)) {
             tokens.push({
                 type: currentToken() as TokenType,
                 lexeme: currentToken(),

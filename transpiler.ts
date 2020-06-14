@@ -7,6 +7,8 @@ export default function transpile(ast: Node[]): string {
 
 function process(node: Node): string {
     switch(node.kind) {
+        case 'declaration':
+            return `var ${node.name.lexeme} = ${process(node.initializer)};`;
         case 'identifier':
             return node.name.lexeme;
         case 'operator-identifier':
@@ -15,8 +17,12 @@ function process(node: Node): string {
             return JSON.stringify(node.value);
         case 'function-literal':
             return `(${node.params.map(token => token.lexeme).join(') => (')}) => ${process(node.body)}`;
-        case 'declaration':
-            return `const ${node.name.lexeme} = ${process(node.initializer)};`;
+        case 'range-literal':
+            return `new Array(${process(node.end)} - ${process(node.start)}).fill(null).map((_, index) => ${process(node.start)} + index)`;
+        case 'array-literal':
+            return `[ ${node.elements.map(process).join(', ')} ]`;
+        case 'object-literal':
+            return `{ ${node.entries.map(entry => `${process(entry.key)}: ${process(entry.value)}`).join(', ')} }`;
         case 'call':
             return `${process(node.func)}(${node.args.map(process).join(')(')})`;
         case 'conditional':

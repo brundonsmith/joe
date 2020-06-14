@@ -1,5 +1,4 @@
 
-
 // AST
 export type Node =
     | Declaration
@@ -35,6 +34,9 @@ export type OperatorIdentifier = {
 export type Literal =
     | PrimitiveLiteral
     | FunctionLiteral
+    | RangeLiteral
+    | ArrayLiteral
+    | ObjectLiteral
 
 export type PrimitiveLiteral = {
     kind: 'literal',
@@ -45,6 +47,25 @@ export type FunctionLiteral = {
     kind: 'function-literal',
     params: Token[],
     body: Expression
+}
+
+export type RangeLiteral = {
+    kind: 'range-literal',
+    start: Expression,
+    end: Expression,
+}
+
+export type ArrayLiteral = {
+    kind: 'array-literal',
+    elements: Expression[],
+}
+
+export type ObjectLiteral = {
+    kind: 'object-literal',
+    entries: Array<{
+        key: Expression,
+        value: Expression,
+    }>
 }
 
 
@@ -84,6 +105,8 @@ export const OPERATORS = [
     '<',
     '>=',
     '<=',
+
+    '&',
 ] as const;
 
 export const KEYWORDS = [
@@ -95,6 +118,7 @@ export const KEYWORDS = [
     '[',
     ']',
     '.',
+    '..',
     ':',
     '=', // might be a problem with == function
     '//',
@@ -117,8 +141,4 @@ export type TokenType =
 
     | 'eof';
 
-export type LiteralValue = 
-    | ((...args: LiteralValue[]) => LiteralValue)
-    | [ LiteralValue ] 
-    | { [key: string]: LiteralValue } 
-    | number|string|boolean|undefined;
+export type LiteralValue = number|string|boolean|undefined;

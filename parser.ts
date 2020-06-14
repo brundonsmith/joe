@@ -119,11 +119,11 @@ export function parse(tokens: Token[], errorCallback: (tokenOrLineNumber: Token|
     }
 
     function callPipe(): Expression {
-        let expr = callPrefix();
+        let expr = range();
 
         while (tokens[current]?.type === '|>') {
             eat('|>');
-            let func = callPrefix();
+            let func = range();
 
             expr = { kind: 'call', func, args: [ expr ] };
         }
@@ -131,8 +131,25 @@ export function parse(tokens: Token[], errorCallback: (tokenOrLineNumber: Token|
         return expr;
     }
 
+    function range(): Expression {
+        let expr = callPrefix();
+
+        if (tokens[current]?.type === '..') {
+            eat('..');
+            let end = callPrefix();
+
+            return {
+                kind: 'range-literal',
+                start: expr,
+                end
+            };
+        }
+
+        return expr;
+    }
+
     function callPrefix(): Expression {
-        let expr = primary();
+        let expr = array();
 
         if (tokens[current]?.type === '(' && !tokens[current]?.whitespaceBefore) {
             eat('(');
@@ -150,6 +167,75 @@ export function parse(tokens: Token[], errorCallback: (tokenOrLineNumber: Token|
         }
 
         return expr;
+    }
+
+    function array(): Expression {
+        if (tokens[current]?.type === '[') {
+            eat('[');
+
+            let elements = [];
+            if (tokens[current]?.type !== ']') {
+                elements.push(expression());
+
+                while (tokens[current]?.type === ',') {
+                    eat(',');
+                    elements.push(expression());
+                }
+            }
+
+            eat (']');
+
+            return { kind: 'array-literal', elements };
+        } else {
+            return object();
+        }
+    }
+
+    function object(): Expression {
+        if (tokens[current]?.type === '{') {
+            eat('{');
+
+            let entries = [];
+            if (tokens[current]?.type !== '}') {
+                let key = primary();
+                let value = key;
+
+                if (tokens[current]?.type === ':') {
+                    eat(':')
+                    value = expression();
+                }
+
+                if (key.kind === 'identifier') {
+                    key = { kind: 'literal', value: key.name.lexeme };
+                }
+
+                entries.push({ key, value });
+
+                while (tokens[current]?.type === ',') {
+                    eat(',');
+
+                    let key = primary();
+                    let value = key;
+
+                    if (tokens[current]?.type === ':') {
+                        eat(':')
+                        value = expression();
+                    }
+
+                    if (key.kind === 'identifier') {
+                        key = { kind: 'literal', value: key.name.lexeme };
+                    }
+
+                    entries.push({ key, value });
+                }
+            }
+
+            eat ('}');
+
+            return { kind: 'object-literal', entries };
+        } else {
+            return primary();
+        }
     }
 
     function primary(): Expression {

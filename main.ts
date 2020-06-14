@@ -4,81 +4,39 @@
 import tokenize from './tokenizer2.ts';
 import { parse } from './parser.ts';
 import transpile from './transpiler.ts';
-import { Token } from './model.ts';
-
-const RUNTIME = `
-const add = (a) => (b) => a + b;
-const sub = (a) => (b) => a - b;
-const mul = (a) => (b) => a * b;
-const div = (a) => (b) => a / b;
-
-const is = (a) => (b) => a === b;
-const greater = (a) => (b) => a > b;
-const less = (a) => (b) => a < b;
-const greaterEqual = (a) => (b) => a >= b;
-const lessEqual = (a) => (b) => a < b;
-
-const map = (func) => (arr) => arr.map(func);
-const reduce = (init) => (func) => (arr) => arr.reduce(func, init);
-const filter = (func) => (arr) => arr.filter(func);
-const some = (func) => (arr) => arr.some(func);
-const every = (func) => (arr) => arr.every(func);
-
-const tap = (x) => {
-    console.log(x);
-    return x;
-};
-
-const OPERATORS = {
-    '+': add,
-    '-': sub,
-    '*': mul,
-    '/': div,
-
-    '==': is,
-    '!=': (a) => (b) => a !== b,
-    '>': greater,
-    '<': less,
-    '>=': greaterEqual,
-    '<=': lessEqual,
-};
-`
+import { parsingError, RUNTIME } from './common.ts';
 
 const tests = [
 `let f = (a, b) => a * b`,
 `let num = 12 |> add(2) |> mul(3)`,
-`let otherThings = things 
+`let otherThings = tap(0..20 
     |> filter((x) => 1 < x / 2) 
-    |> map(mul(2))`,
+    |> map(mul(2)))`,
 `let foo = fib(index - 1) + fib(index - 2)`,
 `let foo = index < 3 -> 1 -> fib(index - 1) + fib(index - 2)`,
 `let fib = (index) =>
     index < 3 -> 1
-    -> fib(index - 1) + fib(index - 2)
-let f1 = tap(fib(1))
-let f2 = tap(fib(2))
-let f3 = tap(fib(3))
-let f4 = tap(fib(4))
-let f5 = tap(fib(5))
-let f6 = tap(fib(6))
-let f7 = tap(fib(7))
-`
+      -> fib(index - 1) + fib(index - 2)
+let sequence = tap(1..10 |> map(fib))
+`,
+`let nums = tap(3..9)`,
+`let arr = [ 2, 3, 4 ]`,
+`let obj = { foo: "stuff", bar: 12 }`,
+`let obj = tap({ foo: "stuff", bar: 12 } & { prop: 5 })`,
 ]
 
 const expected = [
 `const f = (a) => (b) => OPERATORS['*'](a)(b);`,
 `const num = mul(3)(add(2)(12));`,
-`const otherThings = map(mul(2))(filter((x) => OPERATORS['<'](1)(OPERATORS['/'](x)(2)))(things));`,
+`const otherThings = tap(map(mul(2))(filter((x) => OPERATORS['<'](1)(OPERATORS['/'](x)(2)))(new Array(20 - 0).fill(null).map((_, index) => 0 + index))));`,
 `const foo = OPERATORS['+'](fib(OPERATORS['-'](index)(1)))(fib(OPERATORS['-'](index)(2)));`,
 `const foo = OPERATORS['<'](index)(3) ? 1 : OPERATORS['+'](fib(OPERATORS['-'](index)(1)))(fib(OPERATORS['-'](index)(2)));`,
 `const fib = (index) => OPERATORS['<'](index)(3) ? 1 : OPERATORS['+'](fib(OPERATORS['-'](index)(1)))(fib(OPERATORS['-'](index)(2)));
-const f1 = tap(fib(1));
-const f2 = tap(fib(2));
-const f3 = tap(fib(3));
-const f4 = tap(fib(4));
-const f5 = tap(fib(5));
-const f6 = tap(fib(6));
-const f7 = tap(fib(7));`
+const sequence = tap(map(fib)(new Array(10 - 1).fill(null).map((_, index) => 1 + index)));`,
+`const nums = tap(new Array(9 - 3).fill(null).map((_, index) => 3 + index));`,
+`const arr = [ 2, 3, 4 ];`,
+`const obj = { "foo": "stuff", "bar": 12 };`,
+`const obj = tap(OPERATORS['&']({ "foo": "stuff", "bar": 12 })({ "prop": 5 }));`,
 ]
 
 
@@ -106,20 +64,7 @@ tests.forEach(test => {
 })
 
 console.log();
-console.log(tests.filter((test, index) => expected[index] != null).map((test, index) => transpile(parse(tokenize(test))) === expected[index] ? `✓` : `FAILED`).join('\n'))
-
-function parsingError(tokenOrLineNumber: Token|number, message: string) {
-    if(typeof tokenOrLineNumber === 'number') {
-        report(tokenOrLineNumber, "", message);
-    } else {
-        if (tokenOrLineNumber.type === 'eof') {
-            report(tokenOrLineNumber.line, " at end", message);
-        } else {
-            report(tokenOrLineNumber.line, " at '" + tokenOrLineNumber.lexeme + "'", message);
-        }
-    }
-}
-
-function report(line: number, where: string, message: string) {
-    console.error(`[line ${line}] Error${where}: ${message}`);
-}
+console.log(tests
+    .filter((test, index) => expected[index] != null)
+    .map((test, index) => 
+        transpile(parse(tokenize(test))) === expected[index] ? `✓` : `FAILED`).join('\n'))
