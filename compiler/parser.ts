@@ -1,7 +1,7 @@
 import { Token, TokenType, Declaration, Node, Expression, OPERATORS } from "./model.ts";
 
 
-export function parse(tokens: Token[], errorCallback: (tokenOrLineNumber: Token|number, message: string) => any = () => {}): Node[] {
+export default function parse(tokens: Token[], errorCallback: (tokenOrLineNumber: Token|number, message: string) => any = () => {}): Node[] {
     let declarations: Node[] = [];
 
     let current = 0;

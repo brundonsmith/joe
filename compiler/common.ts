@@ -47,19 +47,3 @@ var OPERATORS = {
     '&': (obj1) => (obj2) => ({ ...obj1, ...obj2 }),
 };
 `
-
-export function parsingError(tokenOrLineNumber: Token|number, message: string) {
-    if(typeof tokenOrLineNumber === 'number') {
-        report(tokenOrLineNumber, "", message);
-    } else {
-        if (tokenOrLineNumber.type === 'eof') {
-            report(tokenOrLineNumber.line, " at end", message);
-        } else {
-            report(tokenOrLineNumber.line, " at '" + tokenOrLineNumber.lexeme + "'", message);
-        }
-    }
-}
-
-function report(line: number, where: string, message: string) {
-    console.error(`[line ${line}] Error${where}: ${message}`);
-}
