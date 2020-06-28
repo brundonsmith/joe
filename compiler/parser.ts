@@ -103,7 +103,7 @@ export default function parse(tokens: Token[], errorCallback: (tokenOrLineNumber
 
         if (tokens[current]?.type === 'identifier') {
             let name = eat('identifier');
-            let arg1 = callInfix();
+            let arg2 = callInfix();
 
             return { 
                 kind: 'call', 
@@ -111,7 +111,7 @@ export default function parse(tokens: Token[], errorCallback: (tokenOrLineNumber
                     kind: (OPERATORS as readonly string[]).includes(name.lexeme) ? 'operator-identifier' : 'identifier', 
                     name 
                 }, 
-                args: [ expr, arg1 ]
+                args: [ expr, arg2 ]
             };
         }
 
@@ -243,6 +243,14 @@ export default function parse(tokens: Token[], errorCallback: (tokenOrLineNumber
         if (tokens[current]?.type === 'true') return { kind: 'literal', value: true };
         if (tokens[current]?.type === 'undefined') return { kind: 'literal', value: undefined };
         if (tokens[current]?.type === 'number' || tokens[current]?.type === 'string') return { kind: 'literal', value: eat(tokens[current]?.type).literal };
+
+        if (tokens[current]?.type === '(') {
+            eat('(');
+            let expr = expression();
+            eat(')');
+            return { kind: 'grouping', expression: expr };
+        }
+
         if (tokens[current]?.type === 'identifier') {
             let name = eat('identifier');
             let kind: 'operator-identifier' | 'identifier' = (OPERATORS as readonly string[]).includes(name.lexeme) ? 'operator-identifier' : 'identifier';
@@ -252,30 +260,6 @@ export default function parse(tokens: Token[], errorCallback: (tokenOrLineNumber
 
         throw new ParseError(tokens[current], `Expected expression`);
     }
-
-
-    // function array(): Expression {
-
-    // }
-
-    // function object(): Expression {
-
-    // }
-
-
-    // function callInfix(): Expression {
-
-    // }
-
-    // function callUnary(): Expression {
-
-    // }
-
-
-    // function conditional(): Expression {
-
-    // }
-
 
     // function parenths(): Expression {
 

@@ -40,17 +40,22 @@ let merge(a, b) =>
                 -> [b[0]] + merge(a, b[1:])
 
 let mergesort(x) =>
-    len(x) < 2 -> x
-    ->  let h = len(x);
-    merge(mergesort(x[:h]), mergesort(x[h:]))
+    length(x) < 2 -> x
+      -> let h = length(x);
+    merge(mergesort(
+        slice(0, x, length(x)), 
+        slice(length(x), x, undefined)))
 
 
+// TODO: Math operator precedence
+// TODO: String template literals
 // TODO: Nested let syntax
 // TODO: Array indexing/slicing/comprehension
-// TODO: String template literals
 // TODO: Object access/operations
 // TODO: import/export
-// TODO: Math operator precedence
+// TODO: Parse tree optimizations:
+//          - Compile-time constant evaluation
+//          - Swap function calls with native JS operators, direct access, etc. where possible
 
 // Grammar
 declaration = "let" + identifier + "=" + expression

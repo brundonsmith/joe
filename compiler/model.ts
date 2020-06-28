@@ -16,6 +16,7 @@ export type Declaration = {
 
 export type Expression = 
     | Identifier
+    | Grouping
     | OperatorIdentifier
     | Literal
     | Call
@@ -25,6 +26,11 @@ export type Identifier = {
     kind: 'identifier',
     name: Token
 }
+
+export type Grouping = {
+    kind: 'grouping',
+    expression: Expression
+};
 
 export type OperatorIdentifier = {
     kind: 'operator-identifier',

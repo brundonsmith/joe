@@ -13,10 +13,10 @@ function parsingError(tokenOrLineNumber: Token|number, message: string) {
     if(typeof tokenOrLineNumber === 'number') {
         report(tokenOrLineNumber, "", message);
     } else {
-        if (tokenOrLineNumber.type === 'eof') {
-            report(tokenOrLineNumber.line, " at end", message);
+        if (tokenOrLineNumber?.type === 'eof') {
+            report(tokenOrLineNumber?.line, " at end", message);
         } else {
-            report(tokenOrLineNumber.line, " at '" + tokenOrLineNumber.lexeme + "'", message);
+            report(tokenOrLineNumber?.line, " at '" + tokenOrLineNumber?.lexeme + "'", message);
         }
     }
 }

@@ -11,8 +11,10 @@ function process(node: Node): string {
             return `var ${node.name.lexeme} = ${process(node.initializer)};`;
         case 'identifier':
             return node.name.lexeme;
+        case 'grouping':
+            return ` (${process(node.expression)}) `;
         case 'operator-identifier':
-            return `OPERATORS['${node.name.lexeme}']`;
+            return `OP['${node.name.lexeme}']`;
         case 'literal':
             return JSON.stringify(node.value);
         case 'function-literal':
